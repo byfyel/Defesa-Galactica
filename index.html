@@ -30,6 +30,11 @@
     user-select: none;
   }
 
+  /* Campos de texto precisam permitir seleção/cópia mesmo com o reset acima */
+  input, textarea {
+    user-select: text;
+  }
+
   html, body {
     width: 100%;
     height: 100%;
@@ -188,6 +193,15 @@
   .btn-green:hover:not(:disabled) {
     background: rgba(57, 255, 138, 0.16);
     box-shadow: 5px 5px 0 #000, 0 0 15px rgba(57, 255, 138, 0.45);
+  }
+
+  .btn-cyan {
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+  }
+  .btn-cyan:hover:not(:disabled) {
+    background: rgba(69, 230, 255, 0.16);
+    box-shadow: 5px 5px 0 #000, 0 0 15px rgba(69, 230, 255, 0.45);
   }
 
   .btn-yellow {
@@ -1831,6 +1845,315 @@
   const synth = new RetroSynth();
 
   /* ==========================================================================
+     1b. MÚSICA PROCEDURAL (mesmo AudioContext do RetroSynth, zero arquivos)
+     Cada voz é um array de passos (8 avos). 0 = silêncio, número = nota MIDI,
+     [n1,n2,...] = acorde. Convertido de 01_menu_heavy.mid.
+     ========================================================================== */
+  const MUSIC = {
+    menu: {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[30,54,57], 49, [49,57], 0, [37,49], 0, 49, 57, [30,54,57], 49, [49,57], 0, [37,49], 0, 49, 57, [26,50,54,57], 0, 57, 0, 33, 0, 0, 57, [26,50,57], 0, 57, 0, 33, 0, 0, 57, [25,49,50,52], 56, [52,56], 0, [32,56], 0, 56, 52, [25,49,52], 56, [52,56], 0, [32,56], 0, 56, 52, [29,48,49,53], 0, 48, 0, 36, 0, 0, 48, [29,48,53], 0, 48, 0, 36, 0, 0, 48, [30,53,54,57], 49, [49,57], 0, [37,49], 0, 49, 57, [30,54,57], 49, [49,57], 0, [37,49], 0, 49, 57, 54],
+        [66, 0, [66,69], [66,71], [66,69], 69, [61,66], 0, 66, 0, [66,69], [66,71], [66,69], 69, [61,66], 0, 66, 62, [62,69], [69,71], [62,69], 69, [62,66,69], 0, 66, 62, [62,69], [69,71], [62,69], 69, [62,66,69], 0, 66, 0, [61,69], [61,71], [61,64], [64,69], [61,66,68], 0, 66, 0, [61,69], [61,71], [61,64], [64,69], [61,66,68], 0, 66, 65, [60,65,69], [60,71], [60,65], 69, [60,65,66], 0, 66, 65, [60,65,69], [60,71], [60,65], 69, [60,65,66], 0, 66, 0, [66,69], [66,71], [66,69], 69, [61,66], 0, 66, 0, [66,69], [66,71], 66, 0, [61,66], 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 74, 74, 81, 0, 0, 0, 0, 0, 74, 74, 81, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 77, 72, 0, 0, 0, 0, 0, 77, 77, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    'outer-belt': {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[33,57], [33,48], [40,52,57], [33,48], [33,57], [40,48], [33,48,52,57], [33,57], [33,57], [33,48], [40,52,57], [33,48], [33,57], [40,48], [33,48,52,57], [33,57], [31,55,57], [31,50], [38,55], [31,50], [31,55], [38,50], [31,50,55], [31,55], [31,55], [31,50], [38,55], [31,50], [31,55], [38,50], [31,50,55], [31,55], [29,53,55], [29,48], [36,53], [29,48], [29,53], [36,48], [29,48,53], [29,53], [29,53], [29,48], [36,53], [29,48], [29,53], [36,48], [29,48,53], [29,53], [28,52,53], [28,59], [35,52], [28,59], [28,52], [35,59], [28,52,59], [28,52], [28,52], [28,59], [35,52], [28,59], [28,52], [35,59], [28,52,59], [28,52], [33,52,57], [33,48], [40,52,57], [33,48], [33,57], [40,48], [33,48,52,57], [33,57], [33,57], [33,48], [40,52,57], [33,48], [33,57], [40,48], [33,48,52,57], [33,57], 57],
+        [69, 60, 0, 64, [62,69], 60, 69, 0, 69, 60, 0, 64, [62,69], 60, 69, 0, 69, 60, 67, 64, 62, 60, [67,69], 0, 69, 60, 67, 64, 62, 60, [67,69], 0, 69, 60, 65, 64, [60,62], 60, [65,69], 0, 69, 60, 65, 64, [60,62], 60, [65,69], 0, 69, 60, 64, 64, [62,71], 60, [64,69], 0, 69, 60, 64, 64, [62,71], 60, [64,69], 0, 69, 60, 0, 64, [62,69], 60, 69, 0, 69, 60, 0, 64, [62,69], 60, 69, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    'lunar-orbit': {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[28,52,59], 55, [52,59], 55, [35,52,59], 55, 0, 0, [28,52,59], 55, [52,59], 55, [35,52,59], 55, 0, 0, [24,48,59], 55, 48, 55, [31,48], 55, 0, 0, [24,48], 55, 48, 55, [31,48], 55, 0, 0, [26,50], 57, 50, 57, [33,50], 57, 0, 0, [26,50], 57, 50, 57, [33,50], 57, 0, 0, [35,59], 54, 59, 54, [42,59], 54, 0, 0, [35,59], 54, 59, 54, [42,59], 54, 0, 0, [28,52,59], 55, [52,59], 55, [35,52,59], 55, 0, 0, [28,52,59], 55, [52,59], 55, [35,52,59], 55, 0, 0, 59],
+        [64, 0, [64,67], 69, 67, 67, [64,67,71], 64, 64, 0, [64,67], 69, 67, 67, [64,67,71], 64, [60,64], 0, [60,67], 69, 60, 67, [64,67], 67, [60,64], 0, [60,67], 69, 60, 67, [64,67], 67, [60,62,64], 0, [62,67,69], 69, 62, 67, [64,69], 69, [62,64], 0, [62,67,69], 69, 62, 67, [64,69], 69, [62,64,71], 0, [66,67,71], 69, 71, 67, [64,66], 66, [64,71], 0, [66,67,71], 69, 71, 67, [64,66], 66, [64,71], 0, [64,67], 69, 67, 67, [64,67,71], 64, 64, 0, [64,67], 69, 67, 0, [64,71], 64, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 0, [72,79], 0, 0, 0, 0, 0, 72, 0, [72,79], 0, 0, 0, 0, 0, 74, 0, [74,81], 0, 0, 0, 0, 0, 74, 0, [74,81], 0, 0, 0, 0, 0, 83, 0, [78,83], 0, 0, 0, 0, 0, 83, 0, [78,83], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    'solar-storm': {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[24,48,51], [24,55], [31,51,55], [24,48], [24,51,55], 31, [24,51,55], [24,48], [24,48,51], [24,55], [31,51,55], [24,48], [24,51,55], 31, [24,51,55], [24,48], [32,51,56], 32, [39,51], [32,56], [32,51], 39, [32,51], [32,56], [32,51,56], 32, [39,51], [32,56], [32,51], 39, [32,51], [32,56], [34,51,53,58], 34, [41,53], [34,58], [34,53], 41, [34,53], [34,58], [34,53,58], 34, [41,53], [34,58], [34,53], 41, [34,53], [34,58], [31,50,53,55], 31, [38,50], [31,55], [31,50], 38, [31,50], [31,55], [31,50,55], 31, [38,50], [31,55], [31,50], 38, [31,50], [31,55], [24,48,50,51], [24,55], [31,51,55], [24,48], [24,51,55], 31, [24,51,55], [24,48], [24,48,51], [24,55], [31,51,55], [24,48], [24,51,55], 31, [24,51,55], [24,48], 51],
+        [60, 63, [60,67], 63, [60,68], [63,67], [60,63], 60, 60, 63, [60,67], 63, [60,68], [63,67], [60,63], 60, 60, [63,68], [63,67,68], 63, [63,68], 67, [63,68], 60, 60, [63,68], [63,67,68], 63, [63,68], 67, [63,68], 60, 60, [63,70], [65,67,70], 63, [65,68,70], 67, [63,65,70], 60, 60, [63,70], [65,67,70], 63, [65,68,70], 67, [63,65,70], 60, 60, [63,67], [62,67], 63, [62,67,68], 67, [62,63,67], 60, 60, [63,67], [62,67], 63, [62,67,68], 67, [62,63,67], 60, 60, 63, [60,67], 63, [60,68], [63,67], [60,63], 60, 60, 63, [60,67], 63, [60,68], 67, 60, 60, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, 0, 0, 0, 0, 82, 0, 0, 0, 0, 0, 0, 0, 82, 0, 0, 0, 0, 0, 0, 0, 79, 0, 0, 0, 0, 0, 0, 0, 79, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    'green-nebula': {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[26,50,53], [26,57], [33,53,57], 26, [26,57], 33, [26,57], [26,53], [26,50,53], [26,57], [33,53,57], 26, [26,57], 33, [26,57], [26,53], [34,50,53,58], 34, [41,53], 34, 34, 41, 34, [34,53], [34,53,58], 34, [41,53], 34, 34, 41, 34, [34,53], [24,48,55,58], 24, [31,55], 24, 24, 31, 24, [24,55], [24,48,55], 24, [31,55], 24, 24, 31, 24, [24,55], [33,48,52,57], 33, [40,52], 33, 33, 40, 33, [33,52], [33,52,57], 33, [40,52], 33, 33, 40, 33, [33,52], [26,50,53,57], [26,57], [33,53,57], 26, [26,57], 33, [26,57], [26,53], [26,50,57], 26, [33,57], 26, 26, 33, 26, [26,57], 50],
+        [62, 64, [62,65], [62,69], [62,65], [64,65], [62,69], 0, 62, 64, [62,65], [62,69], [62,65], [64,65], [62,69], 0, 62, [64,70], [65,70], [65,69], [65,70], 64, [62,65,70], 0, 62, [64,70], [65,70], [65,69], [65,70], 64, [62,65,70], 0, 62, [60,64], [60,65,67], [67,69], [60,65,67], 64, [60,62,67], 0, 62, [60,64], [60,65,67], [67,69], [60,65,67], 64, [60,62,67], 0, 62, [64,69], [64,65,69], [64,69], [64,65,69], 64, [62,64,69], 0, 62, [64,69], [64,65,69], [64,69], [64,65,69], 64, [62,64,69], 0, 62, 64, [62,65], [62,69], [62,65], [64,65], [62,69], 0, 62, 62, [62,69], 69, [62,69], 0, [62,69], 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 82, 82, 77, 0, 0, 0, 0, 0, 82, 82, 77, 0, 0, 0, 0, 0, 72, 72, 79, 0, 0, 0, 0, 0, 72, 72, 79, 0, 0, 0, 0, 0, 81, 81, 76, 0, 0, 0, 0, 0, 81, 81, 76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 74, 74, 81, 0, 0]
+      ]
+    },
+    'plasma-ocean': {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[26,50], 44, [26,50,53], [26,44,50], [26,50,53], 44, [26,53,57], [26,44,50], [34,53,58], 40, [34,53,58], [34,40,58], [34,53,58], 40, [34,53], [34,40,58], [25,49,53], 43, [25,49,52], [25,43,49], [25,49,52], 43, [25,52,55], [25,43,49], [26,50,52], 44, [26,50,53], [26,44,50], [26,50,53], 44, [26,53,57], [26,44,50], [26,50,53], 44, [26,50,53], [26,44,50], [26,50,53], 44, [26,53,57], [26,44,50], [34,53,58], 40, [34,53,58], [34,40,58], [34,53,58], 40, [34,53], [34,40,58], [25,49,53], 43, [25,49,52], [25,43,49], [25,49,52], 43, [25,52,55], [25,43,49], [26,50,52], 44, [26,50,53], [26,44,50], [26,50,53], 44, [26,53,57], [26,44,50], [26,50,53], 44, [26,50,57], [26,44,50], [26,50,57], 44, [26,57], [26,44,50], [33,57], 39, [33,52,57], [33,39,57], [33,52,57], 39, [33,52], [33,39,57], 52],
+        [62, 0, 69, 62, 0, 67, 62, 0, 62, 0, 69, 62, 0, 67, [62,70], 0, 62, 0, 69, 62, 0, 67, 62, 0, 62, 0, 69, 62, 0, 67, 62, 0, 62, 0, 69, 62, 0, 67, 62, 0, 62, 0, 69, 62, 0, 67, [62,70], 0, 62, 0, 69, 62, 0, 67, 62, 0, 62, 0, 69, 62, 0, 67, 62, 0, 62, 0, 69, 62, 0, 67, 62, 0, 62, 0, 69, 62, 0, 67, [62,69], 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    'clockwork-zone': {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[31,55], [43,58], [31,50,55], [43,58], [31,55], [43,58], [31,50,55,58], [43,55], [31,55], [43,58], [31,50,55], [43,58], [31,55], [43,58], [31,50,55,58], [43,55], [27,51,55], [39,58], [27,51], [39,58], [27,51], [39,58], [27,51,58], [39,51], [27,51], [39,58], [27,51], [39,58], [27,51], [39,58], [27,51,58], [39,51], [29,51,53], [41,48], [29,53], [41,48], [29,53], [41,48], [29,48,53], [41,53], [29,53], [41,48], [29,53], [41,48], [29,53], [41,48], [29,48,53], [41,53], [26,50,53], [38,57], [26,50], [38,57], [26,50], [38,57], [26,50,57], [38,50], [26,50], [38,57], [26,50], [38,57], [26,50], [38,57], [26,50,57], [38,50], [31,50,55], [43,58], [31,50,55], [43,58], [31,55], [43,58], [31,50,55,58], [43,55], [26,50,55], [38,57], [26,50], [38,57], [26,50], [38,57], [26,50,57], [38,50], 50],
+        [67, 70, 62, 70, [63,67], 62, 70, 67, 67, 70, 62, 70, [63,67], 62, 70, 67, 67, 70, [62,63], 70, [63,70], 62, [63,70], 67, 67, 70, [62,63], 70, [63,70], 62, [63,70], 67, 67, 70, [62,65], 70, [60,63], 62, [65,70], 67, 67, 70, [62,65], 70, [60,63], 62, [65,70], 67, 67, 70, 62, 70, [63,69], 62, [62,70], 67, 67, 70, 62, 70, [63,69], 62, [62,70], 67, 67, 70, 62, 70, [63,67], 62, 70, 67, 67, 70, 62, 70, [63,69], 62, [62,70], 67, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    'frozen-galaxy': {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[28,52,55], 59, 28, 59, [35,52,55], 59, 28, 59, [29,48,53,55], 0, 29, 0, [36,48,53], 0, 29, 0, [27,48,51,54], 57, 27, 57, [34,51,54], 57, 27, 57, [28,52,54,55], 59, 28, 59, [35,52,55], 59, 28, 59, [24,48,55], 0, 24, 0, [31,48,55], 0, 24, 0, [29,48,53,55], 0, 29, 0, [36,48,53], 0, 29, 0, [27,48,51,54], 57, 27, 57, [34,51,54], 57, 27, 57, [28,52,54,55], 59, 28, 59, [35,52,55], 59, 28, 59, [35,54,55,59], 0, 35, 0, [42,54,59], 0, 35, 0, [28,52,54,55], 59, 28, 59, [35,52,55], 59, 28, 59, 55],
+        [64, 66, [64,67], 69, 71, 69, [64,66,67], 64, 64, [65,66], 60, [65,69], 71, [65,69], [60,66], [64,65], 64, 66, [63,66], 69, 71, 69, [63,66], 64, 64, 66, [64,67], 69, 71, 69, [64,66,67], 64, 64, [60,66], 67, [60,69], 71, [60,69], [66,67], [60,64], 64, [65,66], 60, [65,69], 71, [65,69], [60,66], [64,65], 64, 66, [63,66], 69, 71, 69, [63,66], 64, 64, 66, [64,67], 69, 71, 69, [64,66,67], 64, 64, [66,71], 66, [69,71], 71, [69,71], 66, [64,71], 64, 0, [64,67], 69, 71, 69, [64,67], 64, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 0, 0, 0, 72, 0, 0, 0, 77, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 83, 0, 0, 0, 83, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    'crimson-fortress': {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [33, 0, 0, 0, 40, 0, 0, 0, 31, 0, 0, 0, 38, 0, 0, 0, 29, 0, 0, 0, 36, 0, 0, 0, 28, 0, 0, 0, 35, 0, 0, 0, 33, 0, 0, 0, 40, 0, 0, 0, 31, 0, 0, 0, 38, 0, 0, 0, 29, 0, 0, 0, 36, 0, 0, 0, 28, 0, 0, 0, 35, 0, 0, 0, 33, 0, 0, 0, 40, 0, 0, 0, 28, 0, 0, 0, 35, 0, 0, 0, 0],
+        [[60,69], 64, [60,64], 69, [60,64], 0, [60,64], 69, [60,62,67], 0, 62, 67, 62, 0, 62, 67, [60,62,65], 0, 60, 65, 60, 0, 60, 65, [60,64,71], 0, 71, 64, 71, 0, 71, 64, [60,69,71], 64, [60,64], 69, [60,64], 0, [60,64], 69, [60,62,67], 0, 62, 67, 62, 0, 62, 67, [60,62,65], 0, 60, 65, 60, 0, 60, 65, [60,64,71], 0, 71, 64, 71, 0, 71, 64, [60,69,71], 64, [60,64], 69, [60,64], 0, [60,64], 69, [60,64,71], 0, 71, 64, 71, 0, 71, 64, 71],
+        [76, 74, [72,81], 0, [76,81], [72,77], [76,81], 72, 76, [74,79], [72,74,79], 0, [74,76,79], [77,91], [74,76,79], 72, 76, [74,77], [72,77], 0, [72,76,77], [77,89], [72,76,77], 72, 76, [74,76], [72,76,83], 0, [76,83], [77,88], [76,83], 72, 76, 74, [72,81], 0, [76,81], [72,77], [76,81], 72, 76, [74,79], [72,74,79], 0, [74,76,79], [77,91], [74,76,79], 72, 76, [74,77], [72,77], 0, [72,76,77], [77,89], [72,76,77], 72, 76, [74,76], [72,76,83], 0, [76,83], [77,88], [76,83], 72, 76, 0, [72,81], 0, [76,81], [72,77], [76,81], 72, 76, 76, [72,76,83], 0, [76,83], [77,88], [76,83], 72, 0]
+      ]
+    },
+    'singularity': {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[28,52], 55, [28,46,52,59], [28,55], [28,52], 55, [28,46,52,55,59], [28,52], [24,48,52], 55, [24,42,48], [24,55], [24,48], 55, [24,42,48,55], [24,48], [26,48,50], 57, [26,44,50], [26,57], [26,50], 57, [26,44,50,57], [26,50], [28,50,52], 55, [28,46,52,59], [28,55], [28,52], 55, [28,46,52,55,59], [28,52], [28,52], 55, [28,46,52,59], [28,55], [28,52], 55, [28,46,52,55,59], [28,52], [24,48,52], 55, [24,42,48], [24,55], [24,48], 55, [24,42,48,55], [24,48], [26,48,50], 57, [26,44,50], [26,57], [26,50], 57, [26,44,50,57], [26,50], [35,50,59], 54, [35,41,59], [35,54], [35,59], 54, [35,41,54,59], [35,59], [28,52,59], 55, [28,46,52,59], [28,55], [28,52], 55, [28,46,52,55,59], [28,52], [31,52,55], 50, [31,37,55], [31,50], [31,55], 50, [31,37,50,55], [31,55], 55],
+        [64, 0, 71, 0, [64,67], 64, 0, 71, 64, 0, [60,71], 0, 67, 64, 60, 71, 64, 0, [62,71], 0, [67,69], 64, 62, 71, 64, 0, 71, 0, [64,67], 64, 0, 71, 64, 0, 71, 0, [64,67], 64, 0, 71, 64, 0, [60,71], 0, 67, 64, 60, 71, 64, 0, [62,71], 0, [67,69], 64, 62, 71, 64, 0, 71, 0, [66,67], 64, 71, 71, 64, 0, 71, 0, [64,67], 64, 0, 71, 64, 0, [67,71], 0, [62,67], 64, 67, 71, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
+    },
+    'imperial-throne': {
+      bpm: 132,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[33,48,57], [33,39,57], [40,52,57], [33,39,48], [33,48,57], [33,39,57], [40,52], [33,39,52], [32,48,56,59], [32,38,56], [39,50,56], [32,38,59], [32,56,59], [32,38,56], [39,50], [32,38,50], [29,48,53,59], [29,47,53], [36,53], [29,47,48], [29,48,53], [29,47,53], 36, [29,47], [28,48,52,59], [28,46,52], [35,52], [28,46,59], [28,52,59], [28,46,52], 35, [28,46], [33,48,57,59], [33,39,57], [40,52,57], [33,39,48], [33,48,57], [33,39,57], [40,52], [33,39,52], [32,48,56,59], [32,38,56], [39,50,56], [32,38,59], [32,56,59], [32,38,56], [39,50], [32,38,50], [29,48,53,59], [29,47,53], [36,53], [29,47,48], [29,48,53], [29,47,53], 36, [29,47], [28,48,52,59], [28,46,52], [35,52], [28,46,59], [28,52,59], [28,46,52], 35, [28,46], [33,48,57,59], [33,39,57], [40,52,57], [33,39,48], [33,48,57], [33,39,57], [40,52], [33,39,52], [28,48,52,59], [28,46,52], [35,52], [28,46,59], [28,52,59], [28,46,52], 35, [28,46], 59],
+        [69, 60, [64,69], 68, 64, 60, [60,69], 0, 69, 60, [64,68], 68, 64, 60, [68,69,71], 0, 69, 60, [60,64,65], 68, 64, 60, [60,65,69], 65, 69, 60, [64,71], 68, 64, 60, [64,69,71], 64, 69, 60, [64,69], 68, 64, 60, [60,69], 0, 69, 60, [64,68], 68, 64, 60, [68,69,71], 0, 69, 60, [60,64,65], 68, 64, 60, [60,65,69], 65, 69, 60, [64,71], 68, 64, 60, [64,69,71], 64, 69, 60, [64,69], 68, 64, 60, [60,69], 0, 0, 60, [64,71], 68, 64, 60, [64,71], 64, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 76, 0, 0]
+      ]
+    },
+    'infinite': {
+      bpm: 180,
+      waves: ['triangle', 'sawtooth', 'sawtooth'],
+      vols: [0.16, 0.10, 0.08],
+      durs: [1.8, 0.85, 0.85],
+      voices: [
+        [[28,52,55], [28,46,52], [35,52,59], [28,46,55], [28,52,55], [28,46,52], [35,59], [28,46,59], [29,48,53,55], [29,47,53], [36,53], [29,47,48], [29,48,53], [29,47,53], 36, [29,47], [27,48,51,54], [27,45,51], [34,51,57], [27,45,54], [27,51,54], [27,45,51], [34,57], [27,45,57], [28,52,54,55], [28,46,52], [35,52,59], [28,46,55], [28,52,55], [28,46,52], [35,59], [28,46,59], [35,54,55,59], [35,41,59], [42,59], [35,41,54], [35,54,59], [35,41,59], 42, [35,41], [28,52,54,55], [28,46,52], [35,52,59], [28,46,55], [28,52,55], [28,46,52], [35,59], [28,46,59], [29,48,53,55], [29,47,53], [36,53], [29,47,48], [29,48,53], [29,47,53], 36, [29,47], [27,48,51,54], [27,45,51], [34,51,57], [27,45,54], [27,51,54], [27,45,51], [34,57], [27,45,57], [28,52,54,55], [28,46,52], [35,52,59], [28,46,55], [28,52,55], [28,46,52], [35,59], [28,46,59], [35,54,55,59], [35,41,59], [42,59], [35,41,54], [35,54,59], [35,41,59], 42, [35,41], [24,48,54,55], [24,42,48], [31,48], [24,42,55], [24,48,55], [24,42,48], 31, [24,42], [27,51,54,55], [27,45,51], [34,51,57], [27,45,54], [27,51,54], [27,45,51], [34,57], [27,45,57], [29,48,53,54], [29,47,53], [36,53], [29,47,48], [29,48,53], [29,47,53], 36, [29,47], [28,48,52,55], [28,46,52], [35,52,59], [28,46,55], [28,52,55], [28,46,52], [35,59], [28,46,59], [35,54,55,59], [35,41,59], [42,59], [35,41,54], [35,54,59], [35,41,59], 42, [35,41], 54],
+        [0, 0, 64, 0, 0, 0, [64,67], 0, 0, 0, [60,65], 0, 0, 0, [60,65], 65, 0, 0, 63, 0, 0, 0, [63,66], 0, 0, 0, 64, 0, 0, 0, [64,67], 0, 0, 0, [66,71], 0, 0, 0, [66,71], 71, 0, 0, 64, 0, 0, 0, [64,67], 0, 0, 0, [60,65], 0, 0, 0, [60,65], 65, 0, 0, 63, 0, 0, 0, [63,66], 0, 0, 0, 64, 0, 0, 0, [64,67], 0, 0, 0, [66,71], 0, 0, 0, [66,71], 71, 0, 0, [60,67], 0, 0, 0, [60,67], 60, 0, 0, 63, 0, 0, 0, [63,66], 0, 0, 0, [60,65], 0, 0, 0, [60,65], 65, 0, 0, 64, 0, 0, 0, [64,67], 0, 0, 0, [66,71], 0, 0, 0, [66,71], 71, 0],
+        [76, 78, 76, 83, 81, 76, 75, 83, 76, 78, 76, 83, 81, 76, [75,77], 83, 76, 78, 76, 83, 81, 76, 75, 83, 76, 78, 76, 83, 81, 76, 75, 83, 76, 78, 76, 83, 81, 76, [75,83], 83, 76, 78, 76, 83, 81, 76, 75, 83, 76, 78, 76, 83, 81, 76, [75,77], 83, 76, 78, 76, 83, 81, 76, 75, 83, 76, 78, 76, 83, 81, 76, 75, 83, 76, 78, 76, 83, 81, 76, [75,83], 83, 76, 78, 76, 83, 81, 76, [72,75], 83, 76, 78, 76, 83, 81, 76, 75, 83, 76, 78, 76, 83, 81, 76, [75,77], 83, 76, 78, 76, 83, 81, 76, 75, 83, 76, 78, 76, 83, 81, 76, [75,83], 83, 0]
+      ]
+    },
+  };
+
+  class RetroMusic {
+    constructor(synth) {
+      this.synth = synth;
+      this.master = null;
+      this.drive = null;
+      this.timer = null;
+      this.id = null;
+      this.track = null;
+      this.step = 0;
+      this.nextTime = 0;
+      this.volume = 0.7;
+      this.intensity = 1; // 1 = normal; >1 = modo chefe (urgência)
+    }
+
+    driveCurve(k) {
+      const points = 1024;
+      const curve = new Float32Array(points);
+      for (let i = 0; i < points; i++) {
+        const x = (i * 2) / (points - 1) - 1;
+        curve[i] = Math.tanh(x * k) / Math.tanh(k);
+      }
+      return curve;
+    }
+
+    ensureMaster() {
+      const ctx = this.synth.ctx;
+      if (!this.master && ctx) {
+        this.master = ctx.createGain();
+        this.master.gain.value = this.synth.muted ? 0 : this.volume;
+        this.master.connect(ctx.destination);
+
+        // Overdrive (soft clip) para as vozes média/aguda — dá o peso do render original
+        this.drive = ctx.createWaveShaper();
+        this.drive.curve = this.driveCurve(22);
+        this.drive.oversample = '4x';
+        this.drive.connect(this.master);
+      }
+    }
+
+    /* Acelera e "endurece" a faixa durante o chefe, sem reiniciar o loop. */
+    setIntensity(level) {
+      level = level || 1;
+      if (this.intensity === level) return;
+      this.intensity = level;
+      const ctx = this.synth.ctx;
+      if (!ctx) return;
+
+      const tense = level > 1;
+      const vol = (this.synth.muted ? 0 : this.volume) * (tense ? 1.14 : 1);
+      if (this.master) {
+        this.master.gain.cancelScheduledValues(ctx.currentTime);
+        this.master.gain.setTargetAtTime(vol, ctx.currentTime, tense ? 0.06 : 0.18);
+      }
+      if (this.drive) this.drive.curve = this.driveCurve(tense ? 30 : 22);
+    }
+
+    play(id) {
+      if (this.id === id) return;
+      this.stop();
+      const track = MUSIC[id];
+      if (!track) return; // faixa ainda não adicionada: silêncio
+      this.synth.init();  // libera o AudioContext após gesto do usuário
+      if (!this.synth.ctx) return;
+      this.ensureMaster();
+      // Uma sessão nova sempre começa no ritmo normal (mesmo se a anterior
+      // terminou durante o chefe, sem passar por onBossDefeated).
+      this.intensity = 1;
+      if (this.master) {
+        this.master.gain.cancelScheduledValues(this.synth.ctx.currentTime);
+        this.master.gain.setValueAtTime(this.synth.muted ? 0 : this.volume, this.synth.ctx.currentTime);
+      }
+      if (this.drive) this.drive.curve = this.driveCurve(22);
+      this.id = id;
+      this.track = track;
+      this.step = 0;
+      this.nextTime = this.synth.ctx.currentTime + 0.05;
+      this.timer = setInterval(() => this.schedule(), 25);
+      this.schedule();
+    }
+
+    schedule() {
+      const ctx = this.synth.ctx;
+      if (!ctx || !this.track) return;
+      if (this.nextTime < ctx.currentTime) this.nextTime = ctx.currentTime + 0.05;
+      const stepDur = 60 / (this.track.bpm * this.intensity) / 2;
+      const loopLen = this.track.voices[0].length;
+
+      while (this.nextTime < ctx.currentTime + 0.12) {
+        const i = this.step % loopLen;
+        // Kick every other beat only in boss mode — adds urgency without
+        // obscuring the melody.
+        if (this.intensity > 1 && i % 4 === 0) this.kick(this.nextTime);
+        for (let v = 0; v < this.track.voices.length; v++) {
+          const cell = this.track.voices[v][i];
+          if (!cell) continue;
+          const pitches = Array.isArray(cell) ? cell : [cell];
+          for (const p of pitches) {
+            this.note(p, this.nextTime, stepDur * this.track.durs[v],
+              this.track.waves[v], this.track.vols[v], v > 0, v === 0);
+          }
+        }
+        this.nextTime += stepDur;
+        this.step++;
+      }
+    }
+
+    note(midi, when, dur, wave, vol, distorted, subOctave) {
+      if (this.synth.muted || !this.master) return;
+      const ctx = this.synth.ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = wave;
+      osc.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+      gain.gain.setValueAtTime(0.0001, when);
+      gain.gain.linearRampToValueAtTime(vol, when + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+      osc.connect(gain).connect(distorted && this.drive ? this.drive : this.master);
+      osc.start(when);
+      osc.stop(when + dur + 0.02);
+
+      // Sub-octava na voz grave, como no render original
+      if (subOctave) {
+        const sub = ctx.createOscillator();
+        const subGain = ctx.createGain();
+        sub.type = 'sine';
+        sub.frequency.value = osc.frequency.value / 2;
+        subGain.gain.setValueAtTime(0.0001, when);
+        subGain.gain.linearRampToValueAtTime(vol * 0.6, when + 0.01);
+        subGain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+        sub.connect(subGain).connect(this.master);
+        sub.start(when);
+        sub.stop(when + dur + 0.02);
+      }
+    }
+
+    /* Percussão sintética curta, ouvida só no modo chefe. */
+    kick(when) {
+      if (this.synth.muted || !this.master) return;
+      const ctx = this.synth.ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(115, when);
+      osc.frequency.exponentialRampToValueAtTime(45, when + 0.11);
+      gain.gain.setValueAtTime(0.0001, when);
+      gain.gain.linearRampToValueAtTime(0.19, when + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.15);
+      osc.connect(gain).connect(this.master);
+      osc.start(when);
+      osc.stop(when + 0.17);
+    }
+
+    setMuted(muted) {
+      if (this.master) {
+        this.master.gain.value = muted ? 0 : this.volume * (this.intensity > 1 ? 1.14 : 1);
+      }
+    }
+
+    stop() {
+      if (this.timer) clearInterval(this.timer);
+      this.timer = null;
+      this.id = null;
+      this.track = null;
+      this.intensity = 1;
+    }
+  }
+
+  const music = new RetroMusic(synth);
+
+  /* ==========================================================================
      2. DEFINIÇÃO DE NAVES, FASES E BANCOS DE PALAVRAS
      ========================================================================== */
   const SHIPS = [
@@ -2308,7 +2631,24 @@
     if (screenId === 'screen-game') {
       resizeGameCanvas();
       focusTypingInput();
+    } else if (screenId !== 'screen-login') {
+      music.play('menu'); // menu, campanha, hangar, estatísticas e ajustes
     }
+  }
+
+  /* Escapa valores vindos do localStorage antes de interpolá-los em innerHTML */
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /* Formatação única do multiplicador de velocidade (usada em dois lugares) */
+  function formatSpeedMultiplier(value) {
+    return `${Number(value).toFixed(2).replace(/0$/, '').replace(/\.0$/, '')}x`;
   }
 
   function showToast(msg) {
@@ -2340,10 +2680,10 @@
       const stars = getTotalStars(p);
       const ship = SHIPS.find(s => s.id === p.equippedShip) || SHIPS[0];
       savedSummary.innerHTML = `
-        <strong>PILOTO:</strong> <span style="color:var(--neon-yellow);">${p.name}</span> &nbsp;|&nbsp;
-        <strong>ESTRELAS:</strong> <span style="color:var(--neon-yellow);">${stars}★</span><br>
-        <strong>FASES CONCLUÍDAS:</strong> ${p.completedStages.length}/10 &nbsp;|&nbsp;
-        <strong>NAVE:</strong> ${ship.icon} ${ship.name}
+        <strong>PILOTO:</strong> <span style="color:var(--neon-yellow);">${escapeHtml(p.name)}</span> &nbsp;|&nbsp;
+        <strong>ESTRELAS:</strong> <span style="color:var(--neon-yellow);">${escapeHtml(stars)}★</span><br>
+        <strong>FASES CONCLUÍDAS:</strong> ${escapeHtml(p.completedStages.length)}/10 &nbsp;|&nbsp;
+        <strong>NAVE:</strong> ${escapeHtml(ship.icon)} ${escapeHtml(ship.name)}
       `;
       savedSection.style.display = 'block';
     } else {
@@ -2398,7 +2738,7 @@
     const unlocked = currentPilot.infiniteUnlocked || currentPilot.completedStages.includes(10);
     if (unlocked) {
       infBtn.disabled = false;
-      infBtn.innerHTML = `♾️ MODO INFINITO (RECORDE: ${currentPilot.infiniteHighScore})`;
+      infBtn.innerHTML = `♾️ MODO INFINITO (RECORDE: ${escapeHtml(currentPilot.infiniteHighScore)})`;
     } else {
       infBtn.disabled = true;
       infBtn.innerHTML = `🔒 MODO INFINITO (CONCLUA A FASE 10)`;
@@ -2410,6 +2750,15 @@
     previewCanvas.width = 220;
     previewCanvas.height = 110;
     const previewContext = previewCanvas.getContext('2d');
+    previewContext.fillStyle = '#0b1026';
+    previewContext.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+    // Na primeira visita à campanha o canvas do jogo ainda está em 300x150.
+    // Garante um espaço mínimo para desenhar o chefe em boa resolução.
+    if (gameCanvas.width < 440 || gameCanvas.height < 220) {
+      gameCanvas.width = 1200;
+      gameCanvas.height = 640;
+    }
     const centerX = gameCanvas.width / 2;
     const centerY = gameCanvas.height / 2;
     const previousGameState = gameState;
@@ -2473,6 +2822,9 @@
       card.className = 'stage-card' + (isUnlocked ? '' : ' locked');
 
       if (isUnlocked) {
+        card.tabIndex = 0;
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-label', `Iniciar Fase ${st.num}: ${st.name}`);
         card.innerHTML = `
           <div class="stage-num">FASE ${st.num}</div>
           <div class="stage-boss-icon" title="Chefe: ${st.boss.name}"><img src="${bossPreview}" alt="Chefe ${st.boss.name}"></div>
@@ -2480,11 +2832,19 @@
           <div class="stage-meta">${st.theme}<br>Meta: ${st.targetCount} • Prec: ${st.minAcc}%</div>
           <div class="stage-stars">${starStr}</div>
         `;
-        card.addEventListener('click', () => {
+        const startStage = () => {
           synth.playLock();
           startGameSession('campaign', st.num);
+        };
+        card.addEventListener('click', startStage);
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            startStage();
+          }
         });
       } else {
+        card.setAttribute('aria-disabled', 'true');
         card.innerHTML = `
           <div class="stage-num">FASE ${st.num}</div>
           <div class="stage-boss-icon" title="Chefe: ${st.boss.name}"><img src="${bossPreview}" alt="Chefe ${st.boss.name}"><span class="stage-lock-badge" title="Fase bloqueada">🔒</span></div>
@@ -2583,11 +2943,11 @@
       const tr = document.createElement('tr');
       const stars = rec ? '★'.repeat(rec.stars) + '☆'.repeat(3 - rec.stars) : '☆☆☆';
       tr.innerHTML = `
-        <td><strong>${st.num}. ${st.name}</strong></td>
-        <td style="color:var(--neon-yellow);">${stars}</td>
-        <td>${rec ? rec.bestTargets : '-'}</td>
-        <td>${rec ? rec.bestAcc + '%' : '-'}</td>
-        <td>${rec ? rec.bestWpm + ' PPM' : '-'}</td>
+        <td><strong>${st.num}. ${escapeHtml(st.name)}</strong></td>
+        <td style="color:var(--neon-yellow);">${escapeHtml(stars)}</td>
+        <td>${escapeHtml(rec ? rec.bestTargets : '-')}</td>
+        <td>${escapeHtml(rec ? rec.bestAcc + '%' : '-')}</td>
+        <td>${escapeHtml(rec ? rec.bestWpm + ' PPM' : '-')}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -2606,7 +2966,7 @@
         const badge = document.createElement('div');
         badge.className = 'error-key-badge';
         const displayKey = key === ' ' ? 'ESPAÇO' : key;
-        badge.innerHTML = `<span style="color:var(--neon-yellow);">[${displayKey}]</span> : ${count}x`;
+        badge.innerHTML = `<span style="color:var(--neon-yellow);">[${escapeHtml(displayKey)}]</span> : ${escapeHtml(count)}x`;
         errContainer.appendChild(badge);
       });
     }
@@ -2618,7 +2978,7 @@
   function renderSettingsScreen() {
     const mult = currentPilot.settings.speedMultiplier ?? 0.5;
     document.getElementById('speed-mult-slider').value = mult;
-    document.getElementById('speed-mult-label').textContent = `${mult.toFixed(1)}x`;
+    document.getElementById('speed-mult-label').textContent = formatSpeedMultiplier(mult);
     document.getElementById('auto-move-toggle').checked = currentPilot.settings.autoMoveToTarget !== false;
     document.getElementById('custom-words-input').value = (currentPilot.settings.customWords || []).join('\n');
   }
@@ -2679,13 +3039,22 @@
     if (!gameState) return;
     const power = POWERS.find(item => item.id === gameState.selectedPowerId);
     const charge = Math.floor(gameState.powerCharge);
+    const waitingForTarget = charge >= 100 && power && power.id === 'bomb' &&
+      (gameState.bossMode ? !gameState.boss : gameState.entities.length === 0);
+    const key = `${power ? power.id : ''}|${charge}|${waitingForTarget}`;
+    const cache = gameState._powerHudKey || (gameState._powerHudKey = {});
+    if (cache.key === key) return;
+    cache.key = key;
+
     const bar = document.getElementById('power-bar-inner');
     const barOuter = document.getElementById('power-bar-outer');
 
     document.getElementById('power-name-label').textContent = power ? power.shortName : 'PODER';
-    document.getElementById('power-charge-label').textContent = `${charge}%`;
+    document.getElementById('power-charge-label').textContent = waitingForTarget ? 'PRONTA' : `${charge}%`;
     bar.style.width = `${charge}%`;
-    barOuter.setAttribute('aria-label', `Carga do poder ${power ? power.name : ''}`);
+    barOuter.setAttribute('aria-label', waitingForTarget
+      ? 'Bomba orbital pronta, aguardando alvo'
+      : `Carga do poder ${power ? power.name : ''}`);
     barOuter.setAttribute('aria-valuenow', String(charge));
   }
 
@@ -2801,6 +3170,7 @@
     });
     document.getElementById('btn-power-confirm').disabled = true;
     document.getElementById('modal-power-select').classList.add('active');
+    music.play('menu'); // continua tocando enquanto o poder é escolhido
   }
 
   function cancelPowerSelection() {
@@ -2828,6 +3198,9 @@
     const st = STAGES.find(s => s.num === stageNum) || STAGES[0];
     const ship = SHIPS.find(s => s.id === currentPilot.equippedShip) || SHIPS[0];
     const speedMult = currentPilot.settings.speedMultiplier ?? 0.5;
+
+    // Toca a faixa da fase (ou a do modo infinito); play() reseta a intensidade.
+    music.play(mode === 'infinite' ? 'infinite' : st.stageTheme);
 
     gameState = {
       active: true,
@@ -2858,6 +3231,7 @@
       bossMode: false,
       boss: null,
       bossesKilledInRun: 0,
+      statsAccounted: false,
       nextInfiniteBossAt: 15,
       lasers: [],
       enemyLasers: [],
@@ -2990,6 +3364,7 @@
     };
 
     synth.playBossAlert();
+    music.setIntensity(1.25); // música acelera e fica mais agressiva no chefe
     addFloatingText(gameCanvas.width / 2, 220, `⚠ CHEFE: ${bossSpec.name}!`, '#ff4fd8');
     updateLockedTargetHUD();
   }
@@ -3121,12 +3496,16 @@
 
   typingInput.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      if (gameState && gameState.paused) {
-        resumeGame();
-      } else {
-        pauseGame();
+      // Com a partida encerrada (modal de resultado aberto), deixa o ESC
+      // chegar ao handler global, que é responsável por fechar o modal.
+      if (gameState && gameState.active) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (gameState.paused) {
+          resumeGame();
+        } else {
+          pauseGame();
+        }
       }
       return;
     }
@@ -3258,6 +3637,7 @@
 
   function registerTypingError(wrongChar, targetObj) {
     synth.playError();
+    if (!currentPilot.errorKeys) currentPilot.errorKeys = {};
     currentPilot.errorKeys[wrongChar] = (currentPilot.errorKeys[wrongChar] || 0) + 1;
     gameState.wordCombo = 0;
 
@@ -3303,6 +3683,7 @@
 
   function onBossDefeated() {
     synth.playExplosion();
+    music.setIntensity(1); // volta ao ritmo normal da fase
     if (gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'imperial-throne') {
       const { x, y } = gameState.boss;
       createExplosion(x, y, '#fff3bf', 24);
@@ -3315,7 +3696,8 @@
     }
     addFloatingText(gameState.boss.x, gameState.boss.y, 'CHEFE DERROTADO!', '#39ff8a');
 
-    currentPilot.bossesDefeated++;
+    // Contabilizado no encerramento da sessão, para não registrar o chefe se o
+    // jogador sair durante a animação de vitória.
     gameState.bossesKilledInRun++;
 
     // Bônus de cura de escudo ao derrotar chefe (Aegis Nebulosa +5%, Titã Estelar +10%)
@@ -3454,7 +3836,12 @@
     }
 
     updatePlayerMovement(dt);
-    if (gameState.powerCharge >= 100) activateSelectedPower();
+    // Evita tentar ativar o poder a cada frame quando a bomba está carregada
+    // mas não há alvo; ela dispara assim que um inimigo/chefe aparece.
+    if (gameState.powerCharge >= 100) {
+      const hasTarget = gameState.bossMode ? !!gameState.boss : gameState.entities.length > 0;
+      if (hasTarget) activateSelectedPower();
+    }
 
     // Lasers inimigos (do chefe)
     for (let i = gameState.enemyLasers.length - 1; i >= 0; i--) {
@@ -3558,6 +3945,26 @@
     ctx.closePath();
     ctx.fill();
     ctx.restore();
+  }
+
+  /* Flags de tema centralizadas: evita repetir as mesmas 10 verificações
+     em renderGameArena, drawEnemyEntity e drawBossEntity */
+  function getThemeFlags() {
+    const theme = (gameState && gameState.mode === 'campaign' && gameState.stageConfig)
+      ? gameState.stageConfig.stageTheme
+      : null;
+    return {
+      isOuterBelt: theme === 'outer-belt',
+      isLunarOrbit: theme === 'lunar-orbit',
+      isSolarStorm: theme === 'solar-storm',
+      isGreenNebula: theme === 'green-nebula',
+      isPlasmaOcean: theme === 'plasma-ocean',
+      isClockworkZone: theme === 'clockwork-zone',
+      isFrozenGalaxy: theme === 'frozen-galaxy',
+      isCrimsonFortress: theme === 'crimson-fortress',
+      isSingularity: theme === 'singularity',
+      isImperialThrone: theme === 'imperial-throne'
+    };
   }
 
   function renderGameArena() {
@@ -4265,16 +4672,10 @@
 
     // Linha de defesa vermelha pontilhada
     gCtx.save();
-    const isOuterBelt = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'outer-belt';
-    const isLunarOrbit = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'lunar-orbit';
-    const isSolarStorm = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'solar-storm';
-    const isGreenNebula = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'green-nebula';
-    const isPlasmaOcean = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'plasma-ocean';
-    const isClockworkZone = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'clockwork-zone';
-    const isFrozenGalaxy = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'frozen-galaxy';
-    const isCrimsonFortress = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'crimson-fortress';
-    const isSingularity = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'singularity';
-    const isImperialThrone = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'imperial-throne';
+    const {
+      isOuterBelt, isLunarOrbit, isSolarStorm, isGreenNebula, isPlasmaOcean,
+      isClockworkZone, isFrozenGalaxy, isCrimsonFortress, isSingularity, isImperialThrone
+    } = getThemeFlags();
     gCtx.strokeStyle = isOuterBelt
       ? '#45e6ff'
       : isLunarOrbit
@@ -4402,16 +4803,10 @@
   function drawEnemyEntity(ent, isLocked) {
     gCtx.save();
 
-    const isOuterBelt = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'outer-belt';
-    const isLunarOrbit = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'lunar-orbit';
-    const isSolarStorm = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'solar-storm';
-    const isGreenNebula = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'green-nebula';
-    const isPlasmaOcean = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'plasma-ocean';
-    const isClockworkZone = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'clockwork-zone';
-    const isFrozenGalaxy = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'frozen-galaxy';
-    const isCrimsonFortress = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'crimson-fortress';
-    const isSingularity = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'singularity';
-    const isImperialThrone = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'imperial-throne';
+    const {
+      isOuterBelt, isLunarOrbit, isSolarStorm, isGreenNebula, isPlasmaOcean,
+      isClockworkZone, isFrozenGalaxy, isCrimsonFortress, isSingularity, isImperialThrone
+    } = getThemeFlags();
     if (isOuterBelt) {
       gCtx.translate(ent.x, ent.y);
       gCtx.rotate(Math.sin(gameState.ambientTime * 0.7 + ent.id) * 0.18);
@@ -4460,7 +4855,6 @@
       gCtx.lineWidth = isLocked ? 4 : 2;
       gCtx.strokeRect(-24, -12, 48, 24);
       gCtx.restore();
-      gCtx.save();
     } else if (isSolarStorm) {
       gCtx.save();
       gCtx.translate(ent.x, ent.y);
@@ -4490,7 +4884,6 @@
       gCtx.fillRect(-22, 10, 7, 5);
       gCtx.fillRect(15, 10, 7, 5);
       gCtx.restore();
-      gCtx.save();
     } else if (isGreenNebula) {
       gCtx.save();
       gCtx.translate(ent.x, ent.y);
@@ -4519,7 +4912,6 @@
       gCtx.fillRect(-4, -14, 8, 8);
       gCtx.fillRect(-18, 8, 6, 10);
       gCtx.restore();
-      gCtx.save();
     } else if (isPlasmaOcean) {
       gCtx.save();
       gCtx.translate(ent.x, ent.y);
@@ -4551,7 +4943,6 @@
       gCtx.arc(-16, 13, 3, 0, Math.PI * 2);
       gCtx.fill();
       gCtx.restore();
-      gCtx.save();
     } else if (isClockworkZone) {
       const orbitPhase = gameState.ambientTime * 0.9 + ent.id;
       gCtx.save();
@@ -4582,7 +4973,6 @@
       gCtx.arc(ent.x, ent.y, 4, 0, Math.PI * 2);
       gCtx.fill();
       gCtx.restore();
-      gCtx.save();
     } else if (isFrozenGalaxy) {
       const crystalOutline = isLocked ? '#ffe14f' : '#baf5ff';
       gCtx.save();
@@ -4609,7 +4999,6 @@
       gCtx.arc(ent.x, ent.y - 3, 3.5, 0, Math.PI * 2);
       gCtx.fill();
       gCtx.restore();
-      gCtx.save();
     } else if (isCrimsonFortress) {
       gCtx.save();
       gCtx.translate(ent.x, ent.y);
@@ -4642,7 +5031,6 @@
       gCtx.fillRect(-17, 0, 5, 6);
       gCtx.fillRect(12, 0, 5, 6);
       gCtx.restore();
-      gCtx.save();
     } else if (isSingularity) {
       const pulse = 1 + Math.sin(gameState.ambientTime * 2 + ent.id) * 0.1;
       gCtx.save();
@@ -4667,7 +5055,6 @@
       gCtx.arc(0, 0, 2.5, 0, Math.PI * 2);
       gCtx.fill();
       gCtx.restore();
-      gCtx.save();
     } else if (isImperialThrone) {
       const pulse = 1 + Math.sin(gameState.ambientTime * 2 + ent.id) * 0.06;
       gCtx.save();
@@ -4706,7 +5093,6 @@
       gCtx.arc(0, -2, 5, 0, Math.PI * 2);
       gCtx.fill();
       gCtx.restore();
-      gCtx.save();
     } else {
       // Sprite grande (56px)
       gCtx.font = '56px sans-serif';
@@ -4778,16 +5164,10 @@
 
   function drawBossEntity(boss, preview = false) {
     gCtx.save();
-    const isOuterBelt = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'outer-belt';
-    const isLunarOrbit = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'lunar-orbit';
-    const isSolarStorm = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'solar-storm';
-    const isGreenNebula = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'green-nebula';
-    const isPlasmaOcean = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'plasma-ocean';
-    const isClockworkZone = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'clockwork-zone';
-    const isFrozenGalaxy = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'frozen-galaxy';
-    const isCrimsonFortress = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'crimson-fortress';
-    const isSingularity = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'singularity';
-    const isImperialThrone = gameState.mode === 'campaign' && gameState.stageConfig.stageTheme === 'imperial-throne';
+    const {
+      isOuterBelt, isLunarOrbit, isSolarStorm, isGreenNebula, isPlasmaOcean,
+      isClockworkZone, isFrozenGalaxy, isCrimsonFortress, isSingularity, isImperialThrone
+    } = getThemeFlags();
 
     if (!preview) {
       // Nome do Chefe acima do sprite
@@ -5278,55 +5658,86 @@
   function updateGameHUD() {
     if (!gameState) return;
     const { acc, wpm } = calculateCurrentMetrics();
+    const cache = gameState._hudCache || (gameState._hudCache = {});
+
+    const setText = (id, value) => {
+      if (cache[id] === value) return;
+      cache[id] = value;
+      document.getElementById(id).textContent = value;
+    };
 
     if (gameState.mode === 'campaign') {
-      document.getElementById('hud-stage-label').textContent = `FASE ${gameState.stageNum}`;
-      document.getElementById('hud-progress-label').textContent = gameState.bossMode
+      setText('hud-stage-label', `FASE ${gameState.stageNum}`);
+      setText('hud-progress-label', gameState.bossMode
         ? `CHEFE: ${gameState.boss ? gameState.boss.name : ''}`
-        : `ALVOS: ${gameState.targetsDestroyed}/${gameState.targetGoal}`;
+        : `ALVOS: ${gameState.targetsDestroyed}/${gameState.targetGoal}`);
     } else {
-      document.getElementById('hud-stage-label').textContent = 'MODO INFINITO';
-      document.getElementById('hud-progress-label').textContent = `ALVOS: ${gameState.targetsDestroyed}`;
+      setText('hud-stage-label', 'MODO INFINITO');
+      setText('hud-progress-label', `ALVOS: ${gameState.targetsDestroyed}`);
     }
 
-    document.getElementById('hud-score-label').textContent = `PTS: ${gameState.score}`;
-    document.getElementById('hud-acc-label').textContent = `PREC: ${acc}%`;
-    document.getElementById('hud-wpm-label').textContent = `PPM: ${wpm}`;
+    setText('hud-score-label', `PTS: ${gameState.score}`);
+    setText('hud-acc-label', `PREC: ${acc}%`);
+    setText('hud-wpm-label', `PPM: ${wpm}`);
 
-    const livesDisplay = document.getElementById('lives-display');
-    livesDisplay.setAttribute('aria-label', `${gameState.lives} de 3 vidas restantes`);
-    livesDisplay.querySelectorAll('.life-heart').forEach((heart, index) => {
-      heart.classList.toggle('lost', index >= gameState.lives);
-    });
+    const livesKey = 'lives-' + gameState.lives;
+    if (cache.livesKey !== livesKey) {
+      cache.livesKey = livesKey;
+      const livesDisplay = document.getElementById('lives-display');
+      livesDisplay.setAttribute('aria-label', `${gameState.lives} de 3 vidas restantes`);
+      livesDisplay.querySelectorAll('.life-heart').forEach((heart, index) => {
+        heart.classList.toggle('lost', index >= gameState.lives);
+      });
+    }
     updatePowerHUD();
 
     // Escudo
-    const barInner = document.getElementById('shield-bar-inner');
-    const barOuter = document.getElementById('shield-bar-outer');
-    const pctLabel = document.getElementById('shield-pct-label');
-    const critWarn = document.getElementById('critical-warning');
+    const shieldKey = 'shield-' + gameState.shield;
+    if (cache.shieldKey !== shieldKey) {
+      cache.shieldKey = shieldKey;
+      const barInner = document.getElementById('shield-bar-inner');
+      const barOuter = document.getElementById('shield-bar-outer');
+      const pctLabel = document.getElementById('shield-pct-label');
+      const critWarn = document.getElementById('critical-warning');
 
-    barInner.style.width = `${gameState.shield}%`;
-    pctLabel.textContent = `${gameState.shield}%`;
+      barInner.style.width = `${gameState.shield}%`;
+      pctLabel.textContent = `${gameState.shield}%`;
 
-    if (gameState.shield < 40) {
-      barInner.style.backgroundColor = '#ff4d5e';
-      barOuter.style.borderColor = '#ff4d5e';
-      pctLabel.style.color = '#ff4d5e';
-      critWarn.style.display = 'block';
-    } else {
-      barInner.style.backgroundColor = '#39ff8a';
-      barOuter.style.borderColor = '#39ff8a';
-      pctLabel.style.color = '#39ff8a';
-      critWarn.style.display = 'none';
+      if (gameState.shield < 40) {
+        barInner.style.backgroundColor = '#ff4d5e';
+        barOuter.style.borderColor = '#ff4d5e';
+        pctLabel.style.color = '#ff4d5e';
+        critWarn.style.display = 'block';
+      } else {
+        barInner.style.backgroundColor = '#39ff8a';
+        barOuter.style.borderColor = '#39ff8a';
+        pctLabel.style.color = '#39ff8a';
+        critWarn.style.display = 'none';
+      }
     }
   }
 
   /* ==========================================================================
      16. ENCERRAMENTO DE PARTIDA & AVALIAÇÃO DE CRITÉRIOS
      ========================================================================== */
+  function accumulateSessionStats() {
+    if (!gameState || gameState.statsAccounted) return;
+    gameState.statsAccounted = true;
+
+    currentPilot.totalHits += gameState.hits;
+    currentPilot.totalKeystrokes += gameState.keystrokes;
+    const { wpm } = calculateCurrentMetrics();
+    if (wpm > 0) currentPilot.wpmHistory.push(wpm);
+    currentPilot.bossesDefeated += gameState.bossesKilledInRun;
+    gameState.bossesKilledInRun = 0;
+  }
+
   function quitGameToMenu() {
     document.getElementById('modal-pause').classList.remove('active');
+    if (gameState && gameState.active) {
+      accumulateSessionStats();
+      saveCurrentPilot();
+    }
     if (gameState) gameState.active = false;
     if (gameLoopReq) cancelAnimationFrame(gameLoopReq);
     document.getElementById('critical-warning').style.display = 'none';
@@ -5354,14 +5765,13 @@
     if (!gameState || !gameState.active) return;
     gameState.active = false;
     if (gameLoopReq) cancelAnimationFrame(gameLoopReq);
+    music.stop(); // deixa o stinger de vitória/derrota isolado
     document.getElementById('critical-warning').style.display = 'none';
 
     const { acc, wpm } = calculateCurrentMetrics();
 
-    // Atualiza estatísticas globais do piloto
-    currentPilot.totalHits += gameState.hits;
-    currentPilot.totalKeystrokes += gameState.keystrokes;
-    if (wpm > 0) currentPilot.wpmHistory.push(wpm);
+    // Atualiza estatísticas globais do piloto (também cobre saídas/reinícios)
+    accumulateSessionStats();
 
     const titleEl = document.getElementById('result-title');
     const subEl = document.getElementById('result-subtitle');
@@ -5486,6 +5896,7 @@
   // Botão de som
   document.getElementById('btn-sound-toggle').addEventListener('click', () => {
     const isMuted = synth.toggleMute();
+    music.setMuted(isMuted);
     const btn = document.getElementById('btn-sound-toggle');
     btn.textContent = isMuted ? 'SOM: MUDO' : 'SOM: LIGADO';
     btn.className = isMuted ? 'btn btn-sm btn-red' : 'btn btn-sm btn-yellow';
@@ -5553,7 +5964,7 @@
     currentPilot.settings.speedMultiplier = mult;
     currentPilot.settings.speedSettingsVersion = 2;
     speedSlider.value = mult;
-    document.getElementById('speed-mult-label').textContent = `${mult.toFixed(2).replace(/0$/, '').replace(/\.0$/, '')}x`;
+    document.getElementById('speed-mult-label').textContent = formatSpeedMultiplier(mult);
     saveCurrentPilot();
   }
 
@@ -5676,6 +6087,10 @@
     if (!gameState) return;
     const mode = gameState.mode;
     const stageNum = gameState.stageNum;
+    if (gameState.active) {
+      accumulateSessionStats();
+      saveCurrentPilot();
+    }
     startGameSession(mode, stageNum);
   });
   document.getElementById('btn-quit-game').addEventListener('click', quitGameToMenu);
@@ -5734,6 +6149,31 @@
       if (['screen-campaign', 'screen-hangar', 'screen-stats', 'screen-settings'].includes(currentScreenId)) {
         showScreen('screen-menu');
       }
+    }
+  });
+
+  // Mantém o foco dentro do modal ativo (navegação por Tab)
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const modal = document.querySelector('.modal-backdrop.active');
+    if (!modal) return;
+
+    const focusables = Array.from(modal.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    ));
+    if (focusables.length === 0) return;
+
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    } else if (!modal.contains(document.activeElement)) {
+      e.preventDefault();
+      first.focus();
     }
   });
 
